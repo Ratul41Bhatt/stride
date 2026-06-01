@@ -72,6 +72,9 @@ export default function Login({ onLoginSuccess }) {
       if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
         errMsg = "Invalid email or password.";
       }
+      if (err.code) {
+        errMsg += ` (${err.code})`;
+      }
       setError(errMsg);
     } finally {
       setIsLoading(false);
