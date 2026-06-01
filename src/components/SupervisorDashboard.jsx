@@ -689,13 +689,33 @@ export default function SupervisorDashboard({ userProfile }) {
                             const outlet = outlets.find(o => o.id === task.outletId);
                             const outletLat = outlet?.geoPoint?.latitude;
                             const outletLng = outlet?.geoPoint?.longitude;
+                            const posDevice = posList.find(p => p.serial === task.posSerialNumber || p.serialNumber === task.posSerialNumber);
+                            
                             return (
                               <tr key={task.id}>
                                 <td><strong>{task.title}</strong></td>
                                 <td>{task.outletName || task.outletId}</td>
                                 <td>{task.raName || task.raId}</td>
                                 <td><span className="badge badge-info">{task.type}</span></td>
-                                <td><code style={{ color: "var(--accent-violet)", fontWeight: "600" }}>{task.posSerialNumber || "—"}</code></td>
+                                <td>
+                                  {task.posSerialNumber ? (
+                                    <code 
+                                      title={task.posSerialNumber} 
+                                      style={{ 
+                                        color: "var(--accent-violet)", 
+                                        fontWeight: "600", 
+                                        cursor: "help",
+                                        whiteSpace: "nowrap"
+                                      }}
+                                    >
+                                      {task.posSerialNumber.length > 15 
+                                        ? `${task.posSerialNumber.substring(0, 12)}...` 
+                                        : task.posSerialNumber}
+                                    </code>
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
                                 <td>
                                   <span className={`badge ${
                                     task.priority === "URGENT" ? "badge-danger" : 
@@ -710,37 +730,56 @@ export default function SupervisorDashboard({ userProfile }) {
                                   }`}>{task.status}</span>
                                 </td>
                                 <td>
-                                  {task.checkInLat && task.checkInLng ? (
-                                    <button 
-                                      type="button"
-                                      className="btn btn-secondary" 
-                                      style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                                      onClick={() => setSelectedTaskLocation({
-                                        lat: task.checkInLat,
-                                        lng: task.checkInLng,
-                                        title: task.title,
-                                        subtitle: `Checked in by ${task.raName} at ${new Date(task.checkInAt || task.completedAt || Date.now()).toLocaleString()}`
-                                      })}
-                                    >
-                                      <MapPin size={12} style={{ color: "var(--success)" }} /> Check-in
-                                    </button>
-                                  ) : (outletLat && outletLng) ? (
-                                    <button 
-                                      type="button"
-                                      className="btn btn-secondary" 
-                                      style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                                      onClick={() => setSelectedTaskLocation({
-                                        lat: outletLat,
-                                        lng: outletLng,
-                                        title: task.outletName || outlet.name,
-                                        subtitle: `Target Outlet location for task: ${task.title}`
-                                      })}
-                                    >
-                                      <MapPin size={12} style={{ color: "var(--accent-violet)" }} /> Outlet Map
-                                    </button>
-                                  ) : (
-                                    <span style={{ color: "var(--text-muted)", fontSize: "13px", fontStyle: "italic" }}>No GPS Log</span>
-                                  )}
+                                  <div className="d-flex flex-column gap-1">
+                                    {task.checkInLat && task.checkInLng && (
+                                      <button 
+                                        type="button"
+                                        className="btn btn-secondary" 
+                                        style={{ padding: "4px 8px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px", width: "fit-content" }}
+                                        onClick={() => setSelectedTaskLocation({
+                                          lat: task.checkInLat,
+                                          lng: task.checkInLng,
+                                          title: task.title,
+                                          subtitle: `Checked in by ${task.raName} at ${new Date(task.checkInAt || task.completedAt || Date.now()).toLocaleString()}`
+                                        })}
+                                      >
+                                        <MapPin size={11} style={{ color: "var(--success)" }} /> Check-in
+                                      </button>
+                                    )}
+                                    {posDevice?.gpsLat && posDevice?.gpsLng && (
+                                      <button 
+                                        type="button"
+                                        className="btn btn-secondary" 
+                                        style={{ padding: "4px 8px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px", width: "fit-content" }}
+                                        onClick={() => setSelectedTaskLocation({
+                                          lat: posDevice.gpsLat,
+                                          lng: posDevice.gpsLng,
+                                          title: `POS ${posDevice.serialNumber}`,
+                                          subtitle: `Last known location of POS terminal (Bank: ${posDevice.bankName || "Unknown"})`
+                                        })}
+                                      >
+                                        <MapPin size={11} style={{ color: "var(--accent-blue)" }} /> POS Map
+                                      </button>
+                                    )}
+                                    {outletLat && outletLng && (
+                                      <button 
+                                        type="button"
+                                        className="btn btn-secondary" 
+                                        style={{ padding: "4px 8px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px", width: "fit-content" }}
+                                        onClick={() => setSelectedTaskLocation({
+                                          lat: outletLat,
+                                          lng: outletLng,
+                                          title: task.outletName || outlet.name,
+                                          subtitle: `Target Outlet location for task: ${task.title}`
+                                        })}
+                                      >
+                                        <MapPin size={11} style={{ color: "var(--accent-violet)" }} /> Outlet Map
+                                      </button>
+                                    )}
+                                    {!task.checkInLat && !posDevice?.gpsLat && !outletLat && (
+                                      <span style={{ color: "var(--text-muted)", fontSize: "12px", fontStyle: "italic" }}>No GPS Log</span>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             );
