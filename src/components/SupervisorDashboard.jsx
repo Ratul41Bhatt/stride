@@ -135,11 +135,37 @@ export default function SupervisorDashboard({ userProfile }) {
       setPosList(snapshot.docs.map(doc => ({ serial: doc.id, ...doc.data() })));
     });
 
-    // 5. Tasks assigned by this supervisor
-    const qTasks = query(collection(db, "tasks"), where("supervisorId", "==", userProfile.uid));
-    const unsubTasks = onSnapshot(qTasks, (snapshot) => {
-      setTeamTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    // 5. Tasks assigned by this supervisor or assigned to team members
+    let unsubTasks = () => {};
+    let isTasksMounted = true;
+    try {
+      const unsubAll = onSnapshot(collection(db, "tasks"),
+        (snapshot) => {
+          if (isTasksMounted) {
+            setTeamTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+          }
+        },
+        (err) => {
+          if (!isTasksMounted) return;
+          console.warn("Permission denied for all tasks query, falling back to supervisorId query:", err);
+          const qTasks = query(collection(db, "tasks"), where("supervisorId", "==", userProfile.uid));
+          const unsubFallback = onSnapshot(qTasks, (snapshot) => {
+            if (isTasksMounted) {
+              setTeamTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            }
+          });
+          unsubTasks = unsubFallback;
+        }
+      );
+      
+      const originalUnsubTasks = unsubTasks;
+      unsubTasks = () => {
+        unsubAll();
+        originalUnsubTasks();
+      };
+    } catch (err) {
+      console.error("Error setting up tasks snapshot:", err);
+    }
 
     // 6. Manual attendance dispute triggers
     const unsubDisputes = onSnapshot(collection(db, "attendance_disputes"), (snapshot) => {
@@ -152,6 +178,7 @@ export default function SupervisorDashboard({ userProfile }) {
     });
 
     return () => {
+      isTasksMounted = false;
       unsubTeam();
       unsubOutlets();
       unsubRequests();
@@ -669,7 +696,13 @@ export default function SupervisorDashboard({ userProfile }) {
                   </thead>
                   <tbody>
                     {(() => {
-                      const filteredTasks = teamTasks.filter(task => 
+                      const teamMemberIds = teamMembers.map(t => t.uid);
+                      const myTeamTasks = teamTasks.filter(task => 
+                        task.supervisorId === userProfile.uid || 
+                        teamMemberIds.includes(task.raId)
+                      );
+                      
+                      const filteredTasks = myTeamTasks.filter(task => 
                         (task.title || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
                         (task.outletName || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
                         (task.raName || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
