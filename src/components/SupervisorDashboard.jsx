@@ -34,7 +34,8 @@ import {
   Battery,
   AlertCircle,
   Calendar,
-  MessageSquare
+  MessageSquare,
+  Map
 } from "lucide-react";
 
 // Fix Leaflet marker icons by using default leaflet asset paths
