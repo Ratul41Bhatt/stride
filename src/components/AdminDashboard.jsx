@@ -629,7 +629,7 @@ export default function AdminDashboard({ userProfile }) {
 
         <div className="sidebar-footer">
           <div className="user-profile-badge">
-            <div className="avatar">{userProfile.name?.take(2)?.toUpperCase() || "AD"}</div>
+            <div className="avatar">{userProfile.name?.substring(0, 2)?.toUpperCase() || "AD"}</div>
             <div>
               <div className="user-info-name">{userProfile.name}</div>
               <div className="user-info-role">{userProfile.role}</div>
@@ -858,7 +858,7 @@ export default function AdminDashboard({ userProfile }) {
                       <tr key={u.uid}>
                         <td>
                           <div className="d-flex align-center gap-2">
-                            <div className="avatar" style={{ width: "30px", height: "30px", fontSize: "11px" }}>{u.name?.take(2)?.toUpperCase()}</div>
+                            <div className="avatar" style={{ width: "30px", height: "30px", fontSize: "11px" }}>{u.name?.substring(0, 2)?.toUpperCase()}</div>
                             <span>{u.name}</span>
                           </div>
                         </td>

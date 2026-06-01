@@ -335,7 +335,7 @@ export default function SupervisorDashboard({ userProfile }) {
 
         <div className="sidebar-footer">
           <div className="user-profile-badge">
-            <div className="avatar">{userProfile.name?.take(2)?.toUpperCase() || "SP"}</div>
+            <div className="avatar">{userProfile.name?.substring(0, 2)?.toUpperCase() || "SP"}</div>
             <div>
               <div className="user-info-name">{userProfile.name}</div>
               <div className="user-info-role">{userProfile.role}</div>
@@ -390,7 +390,7 @@ export default function SupervisorDashboard({ userProfile }) {
                         <tr key={ra.uid}>
                           <td>
                             <div className="d-flex align-center gap-2">
-                              <div className="avatar" style={{ width: "30px", height: "30px", fontSize: "11px" }}>{ra.name?.take(2)?.toUpperCase()}</div>
+                              <div className="avatar" style={{ width: "30px", height: "30px", fontSize: "11px" }}>{ra.name?.substring(0, 2)?.toUpperCase()}</div>
                               <strong>{ra.name}</strong>
                             </div>
                           </td>
