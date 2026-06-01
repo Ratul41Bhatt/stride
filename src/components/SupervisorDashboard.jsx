@@ -72,6 +72,7 @@ export default function SupervisorDashboard({ userProfile }) {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedTaskLocation, setSelectedTaskLocation] = useState(null);
 
   // New Task Form State
   const [newTask, setNewTask] = useState({
@@ -634,30 +635,69 @@ export default function SupervisorDashboard({ userProfile }) {
                       <th>Priority</th>
                       <th>Due Date</th>
                       <th>Status</th>
+                      <th>Location</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {teamTasks.map(task => (
-                      <tr key={task.id}>
-                        <td><strong>{task.title}</strong></td>
-                        <td>{task.outletName || task.outletId}</td>
-                        <td>{task.raName || task.raId}</td>
-                        <td><span className="badge badge-info">{task.type}</span></td>
-                        <td>
-                          <span className={`badge ${
-                            task.priority === "URGENT" ? "badge-danger" : 
-                            task.priority === "HIGH" ? "badge-warning" : "badge-info"
-                          }`}>{task.priority}</span>
-                        </td>
-                        <td>{new Date(task.dueDate || task.scheduledDate).toLocaleString()}</td>
-                        <td>
-                          <span className={`badge ${
-                            task.status === "COMPLETED" ? "badge-success" : 
-                            task.status === "IN_PROGRESS" ? "badge-info" : "badge-warning"
-                          }`}>{task.status}</span>
-                        </td>
-                      </tr>
-                    ))}
+                    {teamTasks.map(task => {
+                      const outlet = outlets.find(o => o.id === task.outletId);
+                      const outletLat = outlet?.geoPoint?.latitude;
+                      const outletLng = outlet?.geoPoint?.longitude;
+                      return (
+                        <tr key={task.id}>
+                          <td><strong>{task.title}</strong></td>
+                          <td>{task.outletName || task.outletId}</td>
+                          <td>{task.raName || task.raId}</td>
+                          <td><span className="badge badge-info">{task.type}</span></td>
+                          <td>
+                            <span className={`badge ${
+                              task.priority === "URGENT" ? "badge-danger" : 
+                              task.priority === "HIGH" ? "badge-warning" : "badge-info"
+                            }`}>{task.priority}</span>
+                          </td>
+                          <td>{new Date(task.dueDate || task.scheduledDate).toLocaleString()}</td>
+                          <td>
+                            <span className={`badge ${
+                              task.status === "COMPLETED" ? "badge-success" : 
+                              task.status === "IN_PROGRESS" ? "badge-info" : "badge-warning"
+                            }`}>{task.status}</span>
+                          </td>
+                          <td>
+                            {task.checkInLat && task.checkInLng ? (
+                              <button 
+                                type="button"
+                                className="btn btn-secondary" 
+                                style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                                onClick={() => setSelectedTaskLocation({
+                                  lat: task.checkInLat,
+                                  lng: task.checkInLng,
+                                  title: task.title,
+                                  subtitle: `Checked in by ${task.raName} at ${new Date(task.checkInAt || task.completedAt || Date.now()).toLocaleString()}`
+                                })}
+                              >
+                                <MapPin size={12} style={{ color: "var(--success)" }} /> Check-in
+                              </button>
+                            ) : (outletLat && outletLng) ? (
+                              <button 
+                                type="button"
+                                className="btn btn-secondary" 
+                                style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                                onClick={() => setSelectedTaskLocation({
+                                  lat: outletLat,
+                                  lng: outletLng,
+                                  title: task.outletName || outlet.name,
+                                  subtitle: `Target Outlet location for task: ${task.title}`
+                                })}
+                              >
+                                <MapPin size={12} style={{ color: "var(--accent-violet)" }} /> Outlet Map
+                              </button>
+                            ) : (
+                              <span style={{ color: "var(--text-muted)", fontSize: "13px", fontStyle: "italic" }}>No GPS Log</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {teamTasks.length === 0 && (
                       <tr><td colSpan="7" className="text-center">No tasks assigned yet.</td></tr>
                     )}
@@ -799,6 +839,7 @@ export default function SupervisorDashboard({ userProfile }) {
                       <th>Bank Name</th>
                       <th>Branch Name</th>
                       <th>Inventory Status</th>
+                      <th>Location</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -812,6 +853,25 @@ export default function SupervisorDashboard({ userProfile }) {
                           <td>{pos.branchName}</td>
                           <td>
                             <span className="badge badge-success">{pos.status}</span>
+                          </td>
+                          <td>
+                            {pos.gpsLat && pos.gpsLng ? (
+                              <button 
+                                type="button"
+                                className="btn btn-secondary" 
+                                style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                                onClick={() => setSelectedTaskLocation({
+                                  lat: pos.gpsLat,
+                                  lng: pos.gpsLng,
+                                  title: `POS ${pos.serialNumber}`,
+                                  subtitle: `Deployed at: ${pos.merchantName || "Merchant Location"} (Partner Bank: ${pos.bankName})`
+                                })}
+                              >
+                                <MapPin size={12} style={{ color: "var(--success)" }} /> View GPS
+                              </button>
+                            ) : (
+                              <span style={{ color: "var(--text-muted)", fontSize: "13px", fontStyle: "italic" }}>No GPS Log</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -873,6 +933,52 @@ export default function SupervisorDashboard({ userProfile }) {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Map overlay Dialog */}
+        {selectedTaskLocation && (
+          <div style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "20px"
+          }}>
+            <div className="glass-card" style={{ width: "100%", maxWidth: "600px", position: "relative", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
+              <button 
+                type="button"
+                onClick={() => setSelectedTaskLocation(null)}
+                className="btn btn-secondary" 
+                style={{ position: "absolute", top: "16px", right: "16px", padding: "6px 10px", borderRadius: "50%", zIndex: 10000 }}
+              >
+                <X size={16} />
+              </button>
+              <h3 className="mb-4" style={{ paddingRight: "30px" }}>{selectedTaskLocation.title}</h3>
+              <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "16px" }}>{selectedTaskLocation.subtitle}</p>
+              <div style={{ height: "350px", width: "100%", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--border-glass)" }}>
+                <MapContainer center={[selectedTaskLocation.lat, selectedTaskLocation.lng]} zoom={15} style={{ height: "100%", width: "100%" }}>
+                  <TileLayer
+                    attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  />
+                  <Marker position={[selectedTaskLocation.lat, selectedTaskLocation.lng]}>
+                    <Popup>
+                      <div style={{ color: "#000" }}>
+                        <strong>{selectedTaskLocation.title}</strong><br />
+                        {selectedTaskLocation.subtitle}
+                      </div>
+                    </Popup>
+                  </Marker>
+                </MapContainer>
               </div>
             </div>
           </div>
