@@ -35,6 +35,7 @@ import {
   AlertCircle,
   Calendar,
   MessageSquare,
+  Search,
   Map
 } from "lucide-react";
 
@@ -73,6 +74,8 @@ export default function SupervisorDashboard({ userProfile }) {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTaskLocation, setSelectedTaskLocation] = useState(null);
+  const [taskSearch, setTaskSearch] = useState("");
+  const [taskPage, setTaskPage] = useState(1);
 
   // New Task Form State
   const [newTask, setNewTask] = useState({
@@ -84,7 +87,8 @@ export default function SupervisorDashboard({ userProfile }) {
     priority: "MEDIUM",
     scheduledDate: "",
     slaMinutes: 60,
-    notes: ""
+    notes: "",
+    posSerialNumber: ""
   });
 
   // Checklist items within New Task Form
@@ -223,13 +227,14 @@ export default function SupervisorDashboard({ userProfile }) {
         notes: newTask.notes,
         slaMinutes: parseInt(newTask.slaMinutes),
         isOverdue: false,
-        isSynced: true
+        isSynced: true,
+        posSerialNumber: newTask.posSerialNumber || ""
       };
 
       await setDoc(doc(db, "tasks", taskId), taskData);
       setMessage(`Task "${newTask.title}" successfully assigned to ${selectedRa?.name}!`);
       setShowTaskForm(false);
-      setNewTask({ title: "", description: "", type: "VISIT", outletId: "", raId: "", priority: "MEDIUM", scheduledDate: "", slaMinutes: 60, notes: "" });
+      setNewTask({ title: "", description: "", type: "VISIT", outletId: "", raId: "", priority: "MEDIUM", scheduledDate: "", slaMinutes: 60, notes: "", posSerialNumber: "" });
       setNewTaskChecklist([
         { id: "cl_1", title: "Check-in at Merchant Location", isRequired: true, isCompleted: false },
         { id: "cl_2", title: "Verify POS machine operational status", isRequired: true, isCompleted: false },
@@ -592,7 +597,16 @@ export default function SupervisorDashboard({ userProfile }) {
                     <label>SLA Limit (Minutes)</label>
                     <input type="number" className="form-control" value={newTask.slaMinutes} onChange={e => setNewTask({...newTask, slaMinutes: e.target.value})} required />
                   </div>
-                  <div className="form-group" style={{ gridColumn: "span 2" }}>
+                  <div className="form-group">
+                    <label>Device Assignment (POS Serial)</label>
+                    <select className="form-control" value={newTask.posSerialNumber} onChange={e => setNewTask({...newTask, posSerialNumber: e.target.value})}>
+                      <option value="">Select Device Serial (Optional)</option>
+                      {posList.map(pos => (
+                        <option key={pos.serial} value={pos.serialNumber}>{pos.serialNumber} ({pos.bankName})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ gridColumn: "span 3" }}>
                     <label>Deployment Instructions</label>
                     <input type="text" className="form-control" placeholder="Merchant reports keypad unresponsive on terminal..." value={newTask.notes} onChange={e => setNewTask({...newTask, notes: e.target.value})} />
                   </div>
@@ -623,7 +637,21 @@ export default function SupervisorDashboard({ userProfile }) {
             )}
 
             <div className="glass-card">
-              <h3 className="mb-6">Allocated Tasks</h3>
+              <div className="d-flex justify-between align-center mb-6">
+                <h3>Allocated Tasks</h3>
+                <div style={{ position: "relative", width: "280px" }}>
+                  <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    style={{ paddingLeft: "36px" }} 
+                    placeholder="Search Serial/RA/Outlet/Title..." 
+                    value={taskSearch} 
+                    onChange={e => { setTaskSearch(e.target.value); setTaskPage(1); }} 
+                  />
+                </div>
+              </div>
+
               <div className="table-container">
                 <table className="custom-table">
                   <thead>
@@ -632,6 +660,7 @@ export default function SupervisorDashboard({ userProfile }) {
                       <th>Outlet</th>
                       <th>Assignee RA</th>
                       <th>Type</th>
+                      <th>Device Serial</th>
                       <th>Priority</th>
                       <th>Due Date</th>
                       <th>Status</th>
@@ -639,68 +668,124 @@ export default function SupervisorDashboard({ userProfile }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {teamTasks.map(task => {
-                      const outlet = outlets.find(o => o.id === task.outletId);
-                      const outletLat = outlet?.geoPoint?.latitude;
-                      const outletLng = outlet?.geoPoint?.longitude;
-                      return (
-                        <tr key={task.id}>
-                          <td><strong>{task.title}</strong></td>
-                          <td>{task.outletName || task.outletId}</td>
-                          <td>{task.raName || task.raId}</td>
-                          <td><span className="badge badge-info">{task.type}</span></td>
-                          <td>
-                            <span className={`badge ${
-                              task.priority === "URGENT" ? "badge-danger" : 
-                              task.priority === "HIGH" ? "badge-warning" : "badge-info"
-                            }`}>{task.priority}</span>
-                          </td>
-                          <td>{new Date(task.dueDate || task.scheduledDate).toLocaleString()}</td>
-                          <td>
-                            <span className={`badge ${
-                              task.status === "COMPLETED" ? "badge-success" : 
-                              task.status === "IN_PROGRESS" ? "badge-info" : "badge-warning"
-                            }`}>{task.status}</span>
-                          </td>
-                          <td>
-                            {task.checkInLat && task.checkInLng ? (
-                              <button 
-                                type="button"
-                                className="btn btn-secondary" 
-                                style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                                onClick={() => setSelectedTaskLocation({
-                                  lat: task.checkInLat,
-                                  lng: task.checkInLng,
-                                  title: task.title,
-                                  subtitle: `Checked in by ${task.raName} at ${new Date(task.checkInAt || task.completedAt || Date.now()).toLocaleString()}`
-                                })}
-                              >
-                                <MapPin size={12} style={{ color: "var(--success)" }} /> Check-in
-                              </button>
-                            ) : (outletLat && outletLng) ? (
-                              <button 
-                                type="button"
-                                className="btn btn-secondary" 
-                                style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-                                onClick={() => setSelectedTaskLocation({
-                                  lat: outletLat,
-                                  lng: outletLng,
-                                  title: task.outletName || outlet.name,
-                                  subtitle: `Target Outlet location for task: ${task.title}`
-                                })}
-                              >
-                                <MapPin size={12} style={{ color: "var(--accent-violet)" }} /> Outlet Map
-                              </button>
-                            ) : (
-                              <span style={{ color: "var(--text-muted)", fontSize: "13px", fontStyle: "italic" }}>No GPS Log</span>
-                            )}
-                          </td>
-                        </tr>
+                    {(() => {
+                      const filteredTasks = teamTasks.filter(task => 
+                        (task.title || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
+                        (task.outletName || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
+                        (task.raName || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
+                        (task.posSerialNumber || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
+                        (task.type || "").toLowerCase().includes(taskSearch.toLowerCase())
                       );
-                    })}
-                    {teamTasks.length === 0 && (
-                      <tr><td colSpan="7" className="text-center">No tasks assigned yet.</td></tr>
-                    )}
+                      
+                      const tasksPerPage = 10;
+                      const totalTaskPages = Math.ceil(filteredTasks.length / tasksPerPage);
+                      const indexOfLastTask = taskPage * tasksPerPage;
+                      const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+                      const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
+                      
+                      return (
+                        <>
+                          {currentTasks.map(task => {
+                            const outlet = outlets.find(o => o.id === task.outletId);
+                            const outletLat = outlet?.geoPoint?.latitude;
+                            const outletLng = outlet?.geoPoint?.longitude;
+                            return (
+                              <tr key={task.id}>
+                                <td><strong>{task.title}</strong></td>
+                                <td>{task.outletName || task.outletId}</td>
+                                <td>{task.raName || task.raId}</td>
+                                <td><span className="badge badge-info">{task.type}</span></td>
+                                <td><code style={{ color: "var(--accent-violet)", fontWeight: "600" }}>{task.posSerialNumber || "—"}</code></td>
+                                <td>
+                                  <span className={`badge ${
+                                    task.priority === "URGENT" ? "badge-danger" : 
+                                    task.priority === "HIGH" ? "badge-warning" : "badge-info"
+                                  }`}>{task.priority}</span>
+                                </td>
+                                <td>{new Date(task.dueDate || task.scheduledDate).toLocaleString()}</td>
+                                <td>
+                                  <span className={`badge ${
+                                    task.status === "COMPLETED" ? "badge-success" : 
+                                    task.status === "IN_PROGRESS" ? "badge-info" : "badge-warning"
+                                  }`}>{task.status}</span>
+                                </td>
+                                <td>
+                                  {task.checkInLat && task.checkInLng ? (
+                                    <button 
+                                      type="button"
+                                      className="btn btn-secondary" 
+                                      style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                                      onClick={() => setSelectedTaskLocation({
+                                        lat: task.checkInLat,
+                                        lng: task.checkInLng,
+                                        title: task.title,
+                                        subtitle: `Checked in by ${task.raName} at ${new Date(task.checkInAt || task.completedAt || Date.now()).toLocaleString()}`
+                                      })}
+                                    >
+                                      <MapPin size={12} style={{ color: "var(--success)" }} /> Check-in
+                                    </button>
+                                  ) : (outletLat && outletLng) ? (
+                                    <button 
+                                      type="button"
+                                      className="btn btn-secondary" 
+                                      style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                                      onClick={() => setSelectedTaskLocation({
+                                        lat: outletLat,
+                                        lng: outletLng,
+                                        title: task.outletName || outlet.name,
+                                        subtitle: `Target Outlet location for task: ${task.title}`
+                                      })}
+                                    >
+                                      <MapPin size={12} style={{ color: "var(--accent-violet)" }} /> Outlet Map
+                                    </button>
+                                  ) : (
+                                    <span style={{ color: "var(--text-muted)", fontSize: "13px", fontStyle: "italic" }}>No GPS Log</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {filteredTasks.length === 0 && (
+                            <tr><td colSpan="9" className="text-center">No tasks assigned yet.</td></tr>
+                          )}
+                          
+                          {totalTaskPages > 1 && (
+                            <tr>
+                              <td colSpan="9" style={{ padding: "16px" }}>
+                                <div className="d-flex justify-between align-center" style={{ width: "100%" }}>
+                                  <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                                    Showing {indexOfFirstTask + 1} - {Math.min(indexOfLastTask, filteredTasks.length)} of {filteredTasks.length} tasks
+                                  </span>
+                                  <div className="d-flex gap-2">
+                                    <button 
+                                      type="button"
+                                      className="btn btn-secondary" 
+                                      style={{ padding: "6px 12px", fontSize: "12px" }}
+                                      disabled={taskPage === 1}
+                                      onClick={() => setTaskPage(prev => Math.max(1, prev - 1))}
+                                    >
+                                      Previous
+                                    </button>
+                                    <span style={{ fontSize: "13px", fontWeight: "600", alignSelf: "center", color: "var(--text-secondary)" }}>
+                                      Page {taskPage} of {totalTaskPages}
+                                    </span>
+                                    <button 
+                                      type="button"
+                                      className="btn btn-secondary" 
+                                      style={{ padding: "6px 12px", fontSize: "12px" }}
+                                      disabled={taskPage === totalTaskPages}
+                                      onClick={() => setTaskPage(prev => Math.min(totalTaskPages, prev + 1))}
+                                    >
+                                      Next
+                                    </button>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })()}
                   </tbody>
                 </table>
               </div>
