@@ -155,7 +155,7 @@ export default function App() {
       <div style={{ position: "relative" }}>
         <button
           onClick={handleLogout}
-          className="logout-btn"
+          className="console-logout-btn logout-btn"
           style={{
             position: "fixed",
             right: "24px",
@@ -168,7 +168,7 @@ export default function App() {
         >
           <LogOut size={14} /> Logout
         </button>
-        <AdminDashboard userProfile={user} />
+        <AdminDashboard userProfile={user} handleLogout={handleLogout} />
       </div>
     );
   }
@@ -178,7 +178,7 @@ export default function App() {
       <div style={{ position: "relative" }}>
         <button
           onClick={handleLogout}
-          className="logout-btn"
+          className="console-logout-btn logout-btn"
           style={{
             position: "fixed",
             right: "24px",
@@ -191,7 +191,7 @@ export default function App() {
         >
           <LogOut size={14} /> Logout
         </button>
-        <SupervisorDashboard userProfile={user} />
+        <SupervisorDashboard userProfile={user} handleLogout={handleLogout} />
       </div>
     );
   }

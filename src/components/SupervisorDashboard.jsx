@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { db } from "../firebase";
+import { db, auth } from "../firebase";
 import {
   collection,
   query,
@@ -36,7 +36,9 @@ import {
   Calendar,
   MessageSquare,
   Search,
-  Map
+  Map,
+  Menu,
+  LogOut
 } from "lucide-react";
 
 // Fix Leaflet marker icons by using default leaflet asset paths
@@ -56,8 +58,15 @@ function ChangeMapView({ center }) {
   return null;
 }
 
-export default function SupervisorDashboard({ userProfile }) {
+export default function SupervisorDashboard({ userProfile, handleLogout }) {
   const [activeTab, setActiveTab] = useState("team");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Close mobile menu when active tab changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [activeTab]);
+
   const [teamMembers, setTeamMembers] = useState([]);
   const [teamTasks, setTeamTasks] = useState([]);
   const [outlets, setOutlets] = useState([]);
@@ -339,8 +348,31 @@ export default function SupervisorDashboard({ userProfile }) {
 
   return (
     <div className="app-container">
+      {/* Mobile Header Top Bar */}
+      <div className="mobile-header">
+        <button type="button" className="menu-toggle-btn" onClick={() => setIsMobileMenuOpen(true)}>
+          <Menu size={20} />
+        </button>
+        <div className="mobile-logo">
+          <Compass size={20} style={{ color: "var(--accent-violet)" }} />
+          <span>Stride Console</span>
+        </div>
+        <button type="button" className="logout-icon-btn" onClick={handleLogout || (() => auth.signOut())} title="Logout">
+          <LogOut size={18} />
+        </button>
+      </div>
+
+      {/* Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
       {/* Sidebar Navigation */}
-      <div className="sidebar">
+      <div className={`sidebar ${isMobileMenuOpen ? "active" : ""}`}>
+        <button type="button" className="menu-close-btn" onClick={() => setIsMobileMenuOpen(false)}>
+          <X size={20} />
+        </button>
+        
         <div className="sidebar-logo">
           <Compass size={24} style={{ color: "var(--accent-violet)" }} />
           <span>Stride Console</span>
@@ -422,38 +454,38 @@ export default function SupervisorDashboard({ userProfile }) {
                       const isOnline = ra.isCheckedIn || (Date.now() - (ra.lastLocationUpdate || 0)) < 300000;
                       return (
                         <tr key={ra.uid}>
-                          <td>
+                          <td data-label="Associate Name">
                             <div className="d-flex align-center gap-2">
                               <div className="avatar" style={{ width: "30px", height: "30px", fontSize: "11px" }}>{ra.name?.substring(0, 2)?.toUpperCase()}</div>
                               <strong>{ra.name}</strong>
                             </div>
                           </td>
-                          <td>{ra.email}</td>
-                          <td>{ra.designation}</td>
-                          <td>
+                          <td data-label="Email">{ra.email}</td>
+                          <td data-label="Designation">{ra.designation}</td>
+                          <td data-label="Attendance Status">
                             <span className={`badge ${ra.isCheckedIn ? "badge-success" : "badge-warning"}`}>
                               {ra.isCheckedIn ? "Checked In" : "Checked Out"}
                             </span>
                           </td>
-                          <td>
+                          <td data-label="System Link">
                             <span className={`badge ${isOnline ? "badge-success" : "badge-danger"}`}>
                               {isOnline ? "ONLINE" : "OFFLINE"}
                             </span>
                           </td>
-                          <td>
+                          <td data-label="Battery Telemetry">
                             <div className="d-flex align-center gap-2">
                               <Battery size={16} style={{ color: ra.batteryLevel > 20 ? "var(--success)" : "var(--danger)" }} />
                               <span>{ra.batteryLevel}%</span>
                             </div>
                           </td>
-                          <td>
+                          <td data-label="Last Updated">
                             {ra.lastLocationUpdate ? (
                               <span style={{ fontSize: "13px" }}>{new Date(ra.lastLocationUpdate).toLocaleTimeString()}</span>
                             ) : (
                               <span style={{ fontStyle: "italic", color: "var(--text-muted)", fontSize: "13px" }}>Never</span>
                             )}
                           </td>
-                          <td>
+                          <td data-label="Actions">
                             <button className="btn btn-secondary" style={{ padding: "6px 10px", fontSize: "12px" }} onClick={() => resetSession(ra.uid)}>
                               Force Logout
                             </button>
@@ -574,7 +606,7 @@ export default function SupervisorDashboard({ userProfile }) {
             {showTaskForm && (
               <form onSubmit={handleCreateTask} className="glass-card mb-6 d-flex flex-column gap-4">
                 <h3 className="mb-4">Schedule Task</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+                <div className="form-grid-3">
                   <div className="form-group">
                     <label>Task Title</label>
                     <input type="text" className="form-control" placeholder="EBL Terminal Replacement" value={newTask.title} onChange={e => setNewTask({...newTask, title: e.target.value})} required />
@@ -633,7 +665,7 @@ export default function SupervisorDashboard({ userProfile }) {
                       ))}
                     </select>
                   </div>
-                  <div className="form-group" style={{ gridColumn: "span 3" }}>
+                  <div className="form-group form-group-full">
                     <label>Deployment Instructions</label>
                     <input type="text" className="form-control" placeholder="Merchant reports keypad unresponsive on terminal..." value={newTask.notes} onChange={e => setNewTask({...newTask, notes: e.target.value})} />
                   </div>
@@ -711,7 +743,6 @@ export default function SupervisorDashboard({ userProfile }) {
                       );
                       
                       const tasksPerPage = 10;
-                      const totalTaskPages = Math.ceil(filteredTasks.length / tasksPerPage);
                       const indexOfLastTask = taskPage * tasksPerPage;
                       const indexOfFirstTask = indexOfLastTask - tasksPerPage;
                       const currentTasks = filteredTasks.slice(indexOfFirstTask, indexOfLastTask);
@@ -726,11 +757,11 @@ export default function SupervisorDashboard({ userProfile }) {
                             
                             return (
                               <tr key={task.id}>
-                                <td><strong>{task.title}</strong></td>
-                                <td>{task.outletName || task.outletId}</td>
-                                <td>{task.raName || task.raId}</td>
-                                <td><span className="badge badge-info">{task.type}</span></td>
-                                <td>
+                                <td data-label="Title"><strong>{task.title}</strong></td>
+                                <td data-label="Outlet">{task.outletName || task.outletId}</td>
+                                <td data-label="Assignee RA">{task.raName || task.raId}</td>
+                                <td data-label="Type"><span className="badge badge-info">{task.type}</span></td>
+                                <td data-label="Device Serial">
                                   {task.posSerialNumber ? (
                                     <code 
                                       title={task.posSerialNumber} 
@@ -749,21 +780,21 @@ export default function SupervisorDashboard({ userProfile }) {
                                     "—"
                                   )}
                                 </td>
-                                <td>
+                                <td data-label="Priority">
                                   <span className={`badge ${
                                     task.priority === "URGENT" ? "badge-danger" : 
                                     task.priority === "HIGH" ? "badge-warning" : "badge-info"
                                   }`}>{task.priority}</span>
                                 </td>
-                                <td>{new Date(task.dueDate || task.scheduledDate).toLocaleString()}</td>
-                                <td>
+                                <td data-label="Due Date">{new Date(task.dueDate || task.scheduledDate).toLocaleString()}</td>
+                                <td data-label="Status">
                                   <span className={`badge ${
                                     task.status === "COMPLETED" ? "badge-success" : 
                                     task.status === "IN_PROGRESS" ? "badge-info" : "badge-warning"
                                   }`}>{task.status}</span>
                                 </td>
-                                <td>
-                                  <div className="d-flex flex-column gap-1">
+                                <td data-label="Location">
+                                  <div className="d-flex flex-column gap-1 align-end" style={{ alignItems: "flex-end" }}>
                                     {task.checkInLat && task.checkInLng && (
                                       <button 
                                         type="button"
@@ -820,47 +851,67 @@ export default function SupervisorDashboard({ userProfile }) {
                           {filteredTasks.length === 0 && (
                             <tr><td colSpan="9" className="text-center">No tasks assigned yet.</td></tr>
                           )}
-                          
-                          {totalTaskPages > 1 && (
-                            <tr>
-                              <td colSpan="9" style={{ padding: "16px" }}>
-                                <div className="d-flex justify-between align-center" style={{ width: "100%" }}>
-                                  <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-                                    Showing {indexOfFirstTask + 1} - {Math.min(indexOfLastTask, filteredTasks.length)} of {filteredTasks.length} tasks
-                                  </span>
-                                  <div className="d-flex gap-2">
-                                    <button 
-                                      type="button"
-                                      className="btn btn-secondary" 
-                                      style={{ padding: "6px 12px", fontSize: "12px" }}
-                                      disabled={taskPage === 1}
-                                      onClick={() => setTaskPage(prev => Math.max(1, prev - 1))}
-                                    >
-                                      Previous
-                                    </button>
-                                    <span style={{ fontSize: "13px", fontWeight: "600", alignSelf: "center", color: "var(--text-secondary)" }}>
-                                      Page {taskPage} of {totalTaskPages}
-                                    </span>
-                                    <button 
-                                      type="button"
-                                      className="btn btn-secondary" 
-                                      style={{ padding: "6px 12px", fontSize: "12px" }}
-                                      disabled={taskPage === totalTaskPages}
-                                      onClick={() => setTaskPage(prev => Math.min(totalTaskPages, prev + 1))}
-                                    >
-                                      Next
-                                    </button>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
                         </>
                       );
                     })()}
                   </tbody>
                 </table>
               </div>
+
+              {/* Decoupled Pagination Controls outside table-container */}
+              {(() => {
+                const teamMemberIds = teamMembers.map(t => t.uid);
+                const myTeamTasks = teamTasks.filter(task => 
+                  task.supervisorId === userProfile.uid || 
+                  teamMemberIds.includes(task.raId)
+                );
+                
+                const filteredTasks = myTeamTasks.filter(task => 
+                  (task.title || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
+                  (task.outletName || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
+                  (task.raName || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
+                  (task.posSerialNumber || "").toLowerCase().includes(taskSearch.toLowerCase()) ||
+                  (task.type || "").toLowerCase().includes(taskSearch.toLowerCase())
+                );
+                
+                const tasksPerPage = 10;
+                const totalTaskPages = Math.ceil(filteredTasks.length / tasksPerPage);
+                const indexOfLastTask = taskPage * tasksPerPage;
+                const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+                
+                if (totalTaskPages <= 1) return null;
+                
+                return (
+                  <div className="d-flex justify-between align-center mt-4 flex-wrap gap-2" style={{ width: "100%", padding: "8px 0" }}>
+                    <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                      Showing {indexOfFirstTask + 1} - {Math.min(indexOfLastTask, filteredTasks.length)} of {filteredTasks.length} tasks
+                    </span>
+                    <div className="d-flex gap-2">
+                      <button 
+                        type="button"
+                        className="btn btn-secondary" 
+                        style={{ padding: "6px 12px", fontSize: "12px" }}
+                        disabled={taskPage === 1}
+                        onClick={() => setTaskPage(prev => Math.max(1, prev - 1))}
+                      >
+                        Previous
+                      </button>
+                      <span style={{ fontSize: "13px", fontWeight: "600", alignSelf: "center", color: "var(--text-secondary)" }}>
+                        Page {taskPage} of {totalTaskPages}
+                      </span>
+                      <button 
+                        type="button"
+                        className="btn btn-secondary" 
+                        style={{ padding: "6px 12px", fontSize: "12px" }}
+                        disabled={taskPage === totalTaskPages}
+                        onClick={() => setTaskPage(prev => Math.min(totalTaskPages, prev + 1))}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -895,12 +946,12 @@ export default function SupervisorDashboard({ userProfile }) {
                       const user = teamMembers.find(t => t.uid === req.userId);
                       return (
                         <tr key={req.id}>
-                          <td><strong>{user?.name || req.userId}</strong></td>
-                          <td><span className="badge badge-info">{req.type}</span></td>
-                          <td>
+                          <td data-label="Team Member"><strong>{user?.name || req.userId}</strong></td>
+                          <td data-label="Claim Type"><span className="badge badge-info">{req.type}</span></td>
+                          <td data-label="Timeline">
                             {req.type === "LEAVE" ? `${req.startDate} to ${req.endDate} (${req.days} days)` : req.expenseDate}
                           </td>
-                          <td style={{ maxWidth: "250px" }}>
+                          <td data-label="Reason / Route details" style={{ maxWidth: "250px" }}>
                             <span>{req.reason}</span>
                             {req.type === "TA_CLAIM" && (
                               <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
@@ -908,8 +959,8 @@ export default function SupervisorDashboard({ userProfile }) {
                               </div>
                             )}
                           </td>
-                          <td>{req.amount > 0 ? `$${req.amount}` : "—"}</td>
-                          <td>
+                          <td data-label="Amount">{req.amount > 0 ? `$${req.amount}` : "—"}</td>
+                          <td data-label="Approve Decisions">
                             <div className="d-flex gap-2">
                               <button className="btn btn-primary" style={{ padding: "6px 12px", fontSize: "13px" }} onClick={() => handleApproveRequest(req.id, true)}>
                                 Approve
@@ -949,11 +1000,11 @@ export default function SupervisorDashboard({ userProfile }) {
                       const user = teamMembers.find(t => t.uid === disp.userId);
                       return (
                         <tr key={disp.id}>
-                          <td><strong>{user?.name || disp.userId}</strong></td>
-                          <td>{disp.date}</td>
-                          <td>{disp.checkInLocationName || `${disp.lat}, ${disp.lng}`}</td>
-                          <td>{disp.reason}</td>
-                          <td>
+                          <td data-label="Team Member"><strong>{user?.name || disp.userId}</strong></td>
+                          <td data-label="Disputed Date">{disp.date}</td>
+                          <td data-label="Check-in Location (Disputed)">{disp.checkInLocationName || `${disp.lat}, ${disp.lng}`}</td>
+                          <td data-label="Dispute Reason">{disp.reason}</td>
+                          <td data-label="Approve Decisions">
                             <div className="d-flex gap-2">
                               <button className="btn btn-primary" style={{ padding: "6px 12px", fontSize: "13px" }} onClick={() => handleApproveDispute(disp.id, true)}>
                                 Adjust Check-in
@@ -1004,14 +1055,14 @@ export default function SupervisorDashboard({ userProfile }) {
                       const assignee = teamMembers.find(t => t.uid === pos.currentAssigneeId);
                       return (
                         <tr key={pos.serial}>
-                          <td><strong style={{ color: "var(--accent-violet)" }}>{pos.serialNumber}</strong></td>
-                          <td><strong>{assignee?.name || pos.currentAssigneeId}</strong></td>
-                          <td>{pos.bankName}</td>
-                          <td>{pos.branchName}</td>
-                          <td>
+                          <td data-label="Serial Number"><strong style={{ color: "var(--accent-violet)" }}>{pos.serialNumber}</strong></td>
+                          <td data-label="Current Assignee"><strong>{assignee?.name || pos.currentAssigneeId}</strong></td>
+                          <td data-label="Bank Name">{pos.bankName}</td>
+                          <td data-label="Branch Name">{pos.branchName}</td>
+                          <td data-label="Inventory Status">
                             <span className="badge badge-success">{pos.status}</span>
                           </td>
-                          <td>
+                          <td data-label="Location">
                             {pos.gpsLat && pos.gpsLng ? (
                               <button 
                                 type="button"
@@ -1034,7 +1085,7 @@ export default function SupervisorDashboard({ userProfile }) {
                       );
                     })}
                     {teamPOSList.length === 0 && (
-                      <tr><td colSpan="5" className="text-center">No POS terminals currently assigned to your team members.</td></tr>
+                      <tr><td colSpan="6" className="text-center">No POS terminals currently assigned to your team members.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1071,12 +1122,12 @@ export default function SupervisorDashboard({ userProfile }) {
                       const user = teamMembers.find(t => t.uid === score.userId);
                       return (
                         <tr key={score.id}>
-                          <td><strong>{user?.name || score.userId}</strong></td>
-                          <td><span className="badge badge-info">{score.period}</span></td>
-                          <td>{score.target}</td>
-                          <td>{score.actual}</td>
-                          <td><strong>{score.score}</strong></td>
-                          <td>
+                          <td data-label="Associate Name"><strong>{user?.name || score.userId}</strong></td>
+                          <td data-label="KPI Score Period"><span className="badge badge-info">{score.period}</span></td>
+                          <td data-label="Target Metric">{score.target}</td>
+                          <td data-label="Actual Value achieved">{score.actual}</td>
+                          <td data-label="Total Score Index"><strong>{score.score}</strong></td>
+                          <td data-label="Compliance Grade">
                             <span className={`badge ${
                               score.achievement >= 90 ? "badge-success" : 
                               score.achievement >= 75 ? "badge-info" : "badge-warning"

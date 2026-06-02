@@ -524,3 +524,218 @@ body {
 .text-success { color: var(--success); }
 .text-danger { color: var(--danger); }
 .text-warning { color: var(--warning); }
+
+/* Responsive Grid Utilities for Forms */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* Mobile top bar styling */
+.mobile-header {
+  display: none;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+.menu-close-btn {
+  display: none;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+  /* Sidebar responsive logic */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: var(--transition-smooth);
+    width: 280px;
+    height: 100vh;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+  }
+  
+  .sidebar.active {
+    transform: translateX(0);
+  }
+  
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 99;
+  }
+  
+  .menu-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 24px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  
+  /* Main Content Area */
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 16px;
+    padding-top: 80px; /* Spacer for mobile top header */
+  }
+  
+  /* Mobile header styling */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    padding: 0 16px;
+    background: rgba(17, 24, 39, 0.95);
+    border-bottom: 1px solid var(--border-glass);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 98;
+    backdrop-filter: blur(10px);
+  }
+  
+  .menu-toggle-btn, .logout-icon-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
+    color: var(--text-primary);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  
+  .logout-icon-btn {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.15);
+  }
+  
+  .mobile-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+  
+  /* Page headers */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .page-header .btn {
+    width: 100%;
+  }
+  
+  /* Form grids */
+  .form-grid-2, .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Map & Telemetry tabs mobile tuning */
+  .list-pane {
+    max-height: 240px;
+  }
+  
+  .map-container {
+    height: 340px;
+  }
+  
+  /* Responsive Tables as Cards */
+  .table-container {
+    border: none;
+    overflow-x: visible;
+  }
+  
+  .custom-table {
+    display: block;
+    width: 100%;
+  }
+  
+  .custom-table thead {
+    display: none;
+  }
+  
+  .custom-table tbody {
+    display: block;
+    width: 100%;
+  }
+  
+  .custom-table tr {
+    display: block;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    transition: var(--transition-smooth);
+  }
+  
+  .custom-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    text-align: right;
+    font-size: 13px;
+  }
+  
+  .custom-table td:last-child {
+    border-bottom: none;
+  }
+  
+  .custom-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    margin-right: 16px;
+  }
+
+  .console-logout-btn {
+    display: none !important;
+  }
+}
+
+/* Form group full width spanning */
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+.align-end {
+  align-items: flex-end;
+}
+

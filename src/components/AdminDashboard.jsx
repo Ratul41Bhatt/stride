@@ -30,11 +30,21 @@ import {
   UserCheck,
   UserX,
   Layers,
-  Map
+  Map,
+  Shield,
+  Menu,
+  LogOut
 } from "lucide-react";
 
-export default function AdminDashboard({ userProfile }) {
+export default function AdminDashboard({ userProfile, handleLogout }) {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Close mobile menu when active tab changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [activeTab]);
+
   const [users, setUsers] = useState([]);
   const [outlets, setOutlets] = useState([]);
   const [posList, setPosList] = useState([]);
@@ -593,8 +603,31 @@ export default function AdminDashboard({ userProfile }) {
 
   return (
     <div className="app-container">
+      {/* Mobile Header Top Bar */}
+      <div className="mobile-header">
+        <button type="button" className="menu-toggle-btn" onClick={() => setIsMobileMenuOpen(true)}>
+          <Menu size={20} />
+        </button>
+        <div className="mobile-logo">
+          <Shield size={20} style={{ color: "var(--accent-violet)" }} />
+          <span>Stride Console</span>
+        </div>
+        <button type="button" className="logout-icon-btn" onClick={handleLogout} title="Logout">
+          <LogOut size={18} />
+        </button>
+      </div>
+
+      {/* Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="sidebar-overlay" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
       {/* Sidebar Menu */}
-      <div className="sidebar">
+      <div className={`sidebar ${isMobileMenuOpen ? "active" : ""}`}>
+        <button type="button" className="menu-close-btn" onClick={() => setIsMobileMenuOpen(false)}>
+          <X size={20} />
+        </button>
+
         <div className="sidebar-logo">
           <Shield size={24} style={{ color: "var(--accent-violet)" }} />
           <span>Stride Console</span>
@@ -712,10 +745,10 @@ export default function AdminDashboard({ userProfile }) {
                         const reqUser = users.find(u => u.uid === req.userId);
                         return (
                           <tr key={req.id}>
-                            <td>{req.type}</td>
-                            <td>{reqUser?.name || req.userId}</td>
-                            <td>{req.startDate || new Date(req.submittedAt).toLocaleDateString()}</td>
-                            <td>
+                            <td data-label="Type">{req.type}</td>
+                            <td data-label="User">{reqUser?.name || req.userId}</td>
+                            <td data-label="Date">{req.startDate || new Date(req.submittedAt).toLocaleDateString()}</td>
+                            <td data-label="Status">
                               <span className={`badge ${
                                 req.status === "APPROVED" ? "badge-success" : 
                                 req.status === "REJECTED" ? "badge-danger" : "badge-warning"
@@ -775,7 +808,7 @@ export default function AdminDashboard({ userProfile }) {
               <div className="glass-card mb-6" style={{ borderLeft: "4px solid var(--accent-violet)" }}>
                 <h3 className="mb-4">Register New Team Member</h3>
                 <form onSubmit={handleCreateUser} className="d-flex flex-column gap-4">
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                  <div className="form-grid-2">
                     <div className="form-group">
                       <label>Full Name</label>
                       <input type="text" className="form-control" placeholder="Ratul Bhatt" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} required />
@@ -856,27 +889,27 @@ export default function AdminDashboard({ userProfile }) {
                   <tbody>
                     {filteredUsers.map(u => (
                       <tr key={u.uid}>
-                        <td>
+                        <td data-label="Name">
                           <div className="d-flex align-center gap-2">
                             <div className="avatar" style={{ width: "30px", height: "30px", fontSize: "11px" }}>{u.name?.substring(0, 2)?.toUpperCase()}</div>
                             <span>{u.name}</span>
                           </div>
                         </td>
-                        <td>{u.email}</td>
-                        <td><span className="badge badge-info">{u.role}</span></td>
-                        <td>{u.employeeId || "N/A"}</td>
-                        <td>{u.designation || "N/A"}</td>
-                        <td>
+                        <td data-label="Email">{u.email}</td>
+                        <td data-label="Role"><span className="badge badge-info">{u.role}</span></td>
+                        <td data-label="Employee ID">{u.employeeId || "N/A"}</td>
+                        <td data-label="Designation">{u.designation || "N/A"}</td>
+                        <td data-label="Active Status">
                           <span className={`badge ${u.isActive !== false ? "badge-success" : "badge-danger"}`}>
                             {u.isActive !== false ? "Active" : "Disabled"}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Session">
                           <span className={`badge ${u.isLoggedIn ? "badge-success" : "badge-warning"}`}>
                             {u.isLoggedIn ? "Logged In" : "Offline"}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                           <div className="d-flex gap-2">
                             <button className="btn btn-secondary" style={{ padding: "6px 10px", fontSize: "12px" }} title="Reset Session" onClick={() => resetUserSession(u.uid)}>
                               <RefreshCw size={12} /> Reset
@@ -917,7 +950,7 @@ export default function AdminDashboard({ userProfile }) {
             {showPosForm && (
               <form onSubmit={handleCreatePos} className="glass-card mb-6 d-flex flex-column gap-4">
                 <h3 className="mb-4">Register POS Terminal</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="form-grid-2">
                   <div className="form-group">
                     <label>Serial Number (UID Barcode)</label>
                     <input type="text" className="form-control" placeholder="POS-987654" value={newPos.serialNumber} onChange={e => setNewPos({...newPos, serialNumber: e.target.value})} required />
@@ -972,18 +1005,18 @@ export default function AdminDashboard({ userProfile }) {
                   <tbody>
                     {filteredPosList.map(pos => (
                       <tr key={pos.serial}>
-                        <td><strong style={{ color: "var(--accent-violet)" }}>{pos.serialNumber}</strong></td>
-                        <td>{pos.bankName}</td>
-                        <td>{pos.branchName}</td>
-                        <td>
+                        <td data-label="Serial Number"><strong style={{ color: "var(--accent-violet)" }}>{pos.serialNumber}</strong></td>
+                        <td data-label="Bank Name">{pos.bankName}</td>
+                        <td data-label="Branch Name">{pos.branchName}</td>
+                        <td data-label="Current Status">
                           <span className={`badge ${
                             pos.status === "DEPLOYED" ? "badge-success" :
                             pos.status === "ASSIGNED" || pos.status === "COLLECTED" ? "badge-info" :
                             pos.status === "FAULTY" ? "badge-danger" : "badge-warning"
                           }`}>{pos.status}</span>
                         </td>
-                        <td>{pos.history?.length || 0} modifications</td>
-                        <td>
+                        <td data-label="History Changes">{pos.history?.length || 0} modifications</td>
+                        <td data-label="Actions">
                           <select className="form-control" style={{ width: "150px", padding: "6px 8px" }} value={pos.status} onChange={e => updatePosStatus(pos.serial, e.target.value)}>
                             <option value="IN_WAREHOUSE">IN WAREHOUSE</option>
                             <option value="ASSIGNED">ASSIGNED</option>
@@ -1021,7 +1054,7 @@ export default function AdminDashboard({ userProfile }) {
             {showOutletForm && (
               <form onSubmit={handleCreateOutlet} className="glass-card mb-6 d-flex flex-column gap-4">
                 <h3 className="mb-4">Create Outlet Record</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+                <div className="form-grid-3">
                   <div className="form-group">
                     <label>Outlet Name</label>
                     <input type="text" className="form-control" placeholder="Dhaka Plaza Store" value={newOutlet.name} onChange={e => setNewOutlet({...newOutlet, name: e.target.value})} required />
@@ -1051,7 +1084,7 @@ export default function AdminDashboard({ userProfile }) {
                     <label>Monthly Sales Target ($)</label>
                     <input type="number" className="form-control" value={newOutlet.monthlyTarget} onChange={e => setNewOutlet({...newOutlet, monthlyTarget: e.target.value})} required />
                   </div>
-                  <div className="form-group" style={{ gridColumn: "span 3" }}>
+                  <div className="form-group form-group-full">
                     <label>Full Address</label>
                     <input type="text" className="form-control" placeholder="House 12, Road 4, Sector 6, Uttara" value={newOutlet.address} onChange={e => setNewOutlet({...newOutlet, address: e.target.value})} required />
                   </div>
@@ -1119,19 +1152,19 @@ export default function AdminDashboard({ userProfile }) {
                       const currentRa = users.find(u => u.uid === o.assignedRaId);
                       return (
                         <tr key={o.id}>
-                          <td><span className="badge badge-info">{o.code}</span></td>
-                          <td><strong>{o.name}</strong></td>
-                          <td>{o.type}</td>
-                          <td>{o.address}, {o.thana}</td>
-                          <td>
+                          <td data-label="Code"><span className="badge badge-info">{o.code}</span></td>
+                          <td data-label="Outlet Name"><strong>{o.name}</strong></td>
+                          <td data-label="Type">{o.type}</td>
+                          <td data-label="Address">{o.address}, {o.thana}</td>
+                          <td data-label="Assigned RA">
                             {currentRa ? (
                               <span style={{ color: "var(--accent-violet)", fontWeight: "600" }}>{currentRa.name}</span>
                             ) : (
                               <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Unassigned</span>
                             )}
                           </td>
-                          <td>${o.monthlyTarget}</td>
-                          <td>
+                          <td data-label="Target">${o.monthlyTarget}</td>
+                          <td data-label="Update Assignee">
                             <select className="form-control" style={{ padding: "6px 8px" }} value={o.assignedRaId || ""} onChange={e => assignOutletToRA(o.id, e.target.value)}>
                               <option value="">Unassign</option>
                               {users.filter(u => u.role === "RA").map(ra => (
@@ -1184,7 +1217,7 @@ export default function AdminDashboard({ userProfile }) {
             {showKpiForm && (
               <form onSubmit={handleCreateKpi} className="glass-card mb-6 d-flex flex-column gap-4">
                 <h3 className="mb-4">Create Evaluation KPI</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="form-grid-2">
                   <div className="form-group">
                     <label>KPI Name</label>
                     <input type="text" className="form-control" placeholder="Target Outlets Visited" value={newKpi.name} onChange={e => setNewKpi({...newKpi, name: e.target.value})} required />
@@ -1219,7 +1252,7 @@ export default function AdminDashboard({ userProfile }) {
                       <option value="MONTHLY">MONTHLY</option>
                     </select>
                   </div>
-                  <div className="form-group" style={{ gridColumn: "span 2" }}>
+                  <div className="form-group form-group-full">
                     <label>Formula (Optional Syntax)</label>
                     <input type="text" className="form-control" placeholder="completed_tasks / total_assigned_tasks * 100" value={newKpi.formula} onChange={e => setNewKpi({...newKpi, formula: e.target.value})} />
                   </div>
@@ -1249,13 +1282,13 @@ export default function AdminDashboard({ userProfile }) {
                   <tbody>
                     {kpis.map(kpi => (
                       <tr key={kpi.id}>
-                        <td><strong>{kpi.name}</strong></td>
-                        <td><span className="badge badge-info">{kpi.category}</span></td>
-                        <td>{kpi.targetValue}</td>
-                        <td>{kpi.unit}</td>
-                        <td>{kpi.weight}</td>
-                        <td>{kpi.frequency}</td>
-                        <td>
+                        <td data-label="Name"><strong>{kpi.name}</strong></td>
+                        <td data-label="Category"><span className="badge badge-info">{kpi.category}</span></td>
+                        <td data-label="Target Value">{kpi.targetValue}</td>
+                        <td data-label="Unit">{kpi.unit}</td>
+                        <td data-label="Weight">{kpi.weight}</td>
+                        <td data-label="Frequency">{kpi.frequency}</td>
+                        <td data-label="Status">
                           <span className={`badge ${kpi.isActive ? "badge-success" : "badge-danger"}`}>
                             {kpi.isActive ? "Active" : "Inactive"}
                           </span>
@@ -1296,7 +1329,7 @@ export default function AdminDashboard({ userProfile }) {
                   <label>Body Content</label>
                   <textarea className="form-control" style={{ minHeight: "120px" }} placeholder="Dear team, please note that effective this month..." value={newAnnouncement.content} onChange={e => setNewAnnouncement({...newAnnouncement, content: e.target.value})} required />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+                <div className="form-grid-3">
                   <div className="form-group">
                     <label>Bulletin Category</label>
                     <select className="form-control" value={newAnnouncement.type} onChange={e => setNewAnnouncement({...newAnnouncement, type: e.target.value})}>
@@ -1380,13 +1413,13 @@ export default function AdminDashboard({ userProfile }) {
                       const reqUser = users.find(u => u.uid === req.userId);
                       return (
                         <tr key={req.id}>
-                          <td><span className="badge badge-info">{req.id?.slice(-6)}</span></td>
-                          <td><strong>{reqUser?.name || req.userId}</strong><br /><span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{reqUser?.role}</span></td>
-                          <td>{req.type}</td>
-                          <td>
+                          <td data-label="ID"><span className="badge badge-info">{req.id?.slice(-6)}</span></td>
+                          <td data-label="User Account"><strong>{reqUser?.name || req.userId}</strong><br /><span style={{ fontSize: "11px", color: "var(--text-muted)" }}>{reqUser?.role}</span></td>
+                          <td data-label="Request Type">{req.type}</td>
+                          <td data-label="Date Range / Date">
                             {req.type === "LEAVE" ? `${req.startDate} to ${req.endDate} (${req.days} days)` : req.expenseDate}
                           </td>
-                          <td style={{ maxWidth: "250px" }}>
+                          <td data-label="Details" style={{ maxWidth: "250px" }}>
                             <span style={{ fontSize: "13px" }}>{req.reason}</span>
                             {req.type === "TA_CLAIM" && (
                               <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px" }}>
@@ -1394,8 +1427,8 @@ export default function AdminDashboard({ userProfile }) {
                               </div>
                             )}
                           </td>
-                          <td>{req.amount > 0 ? `$${req.amount}` : "N/A"}</td>
-                          <td>
+                          <td data-label="Requested Amount">{req.amount > 0 ? `$${req.amount}` : "N/A"}</td>
+                          <td data-label="Status">
                             <span className={`badge ${
                               req.status === "APPROVED" ? "badge-success" : 
                               req.status === "REJECTED" ? "badge-danger" : "badge-warning"
@@ -1430,7 +1463,7 @@ export default function AdminDashboard({ userProfile }) {
             {showTerritoryForm && (
               <form onSubmit={handleCreateTerritory} className="glass-card mb-6 d-flex flex-column gap-4">
                 <h3 className="mb-4">Create Geofence Details</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+                <div className="form-grid-3">
                   <div className="form-group">
                     <label>Territory Name</label>
                     <input type="text" className="form-control" placeholder="Dhaka South Zone" value={newTerritory.name} onChange={e => setNewTerritory({...newTerritory, name: e.target.value})} required />
@@ -1480,11 +1513,11 @@ export default function AdminDashboard({ userProfile }) {
                   <tbody>
                     {territories.map(t => (
                       <tr key={t.id}>
-                        <td><strong>{t.name}</strong></td>
-                        <td><span className="badge badge-info">{t.type}</span></td>
-                        <td>{t.centerLat?.toFixed(4)}, {t.centerLng?.toFixed(4)}</td>
-                        <td>{t.radius} meters</td>
-                        <td>
+                        <td data-label="Name"><strong>{t.name}</strong></td>
+                        <td data-label="Zone Type"><span className="badge badge-info">{t.type}</span></td>
+                        <td data-label="GPS Center">{t.centerLat?.toFixed(4)}, {t.centerLng?.toFixed(4)}</td>
+                        <td data-label="Radius Limit">{t.radius} meters</td>
+                        <td data-label="Status">
                           <span className="badge badge-success">ACTIVE</span>
                         </td>
                       </tr>
