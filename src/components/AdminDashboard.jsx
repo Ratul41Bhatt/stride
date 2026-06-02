@@ -864,9 +864,9 @@ export default function AdminDashboard({ userProfile, handleLogout }) {
 
             {/* List and Actions */}
             <div className="glass-card">
-              <div className="d-flex justify-between align-center mb-6">
+              <div className="d-flex justify-between align-center mb-6 flex-mobile-column">
                 <h3>Users List</h3>
-                <div style={{ position: "relative", width: "260px" }}>
+                <div className="mobile-w-full" style={{ position: "relative", width: "260px" }}>
                   <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
                   <input type="text" className="form-control" style={{ paddingLeft: "36px" }} placeholder="Search name/email/role..." value={userSearch} onChange={e => setUserSearch(e.target.value)} />
                 </div>
@@ -982,9 +982,9 @@ export default function AdminDashboard({ userProfile, handleLogout }) {
             )}
 
             <div className="glass-card">
-              <div className="d-flex justify-between align-center mb-6">
+              <div className="d-flex justify-between align-center mb-6 flex-mobile-column">
                 <h3>Stock Register</h3>
-                <div style={{ position: "relative", width: "260px" }}>
+                <div className="mobile-w-full" style={{ position: "relative", width: "260px" }}>
                   <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
                   <input type="text" className="form-control" style={{ paddingLeft: "36px" }} placeholder="Search Serial or Bank..." value={posSearch} onChange={e => setPosSearch(e.target.value)} />
                 </div>
@@ -1126,9 +1126,9 @@ export default function AdminDashboard({ userProfile, handleLogout }) {
             )}
 
             <div className="glass-card">
-              <div className="d-flex justify-between align-center mb-6">
+              <div className="d-flex justify-between align-center mb-6 flex-mobile-column">
                 <h3>Registered Outlets</h3>
-                <div style={{ position: "relative", width: "260px" }}>
+                <div className="mobile-w-full" style={{ position: "relative", width: "260px" }}>
                   <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
                   <input type="text" className="form-control" style={{ paddingLeft: "36px" }} placeholder="Search code or name..." value={outletSearch} onChange={e => setOutletSearch(e.target.value)} />
                 </div>

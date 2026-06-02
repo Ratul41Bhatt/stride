@@ -696,9 +696,9 @@ export default function SupervisorDashboard({ userProfile, handleLogout }) {
             )}
 
             <div className="glass-card">
-              <div className="d-flex justify-between align-center mb-6">
+              <div className="d-flex justify-between align-center mb-6 flex-mobile-column">
                 <h3>Allocated Tasks</h3>
-                <div style={{ position: "relative", width: "280px" }}>
+                <div className="mobile-w-full" style={{ position: "relative", width: "280px" }}>
                   <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
                   <input 
                     type="text" 

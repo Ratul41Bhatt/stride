@@ -728,6 +728,21 @@ body {
   .console-logout-btn {
     display: none !important;
   }
+
+  .flex-mobile-column {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+  
+  .mobile-w-full {
+    width: 100% !important;
+  }
+  
+  .glass-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
 }
 
 /* Form group full width spanning */
